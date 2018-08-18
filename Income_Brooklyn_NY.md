@@ -1,10 +1,15 @@
 Income - Brooklyn, NY
 ================
 
+Introduction
+------------
+
+Welcome! In this markdown document we'll be outlining the process of plotting some geospatial data. We're going to be plotting the household income for Brooklyn, NY for the year 2014. Let's get started.
+
 Packages
 --------
 
-The first step to making our plot is to load the required packages. We are using sp and rgdal for the initial work on our shp data. We load tidyr and dplyr for manipulating our shp data later down the line. We also use ggplot2 and viridis for plotting.
+We are using the spc and rgdal packages for the reading of the data and the initial work. We then use tidyr and dplyr to do some manipulation later down the line, and finally we'll make use of the ggplot2 and viridis packages to make the plot.
 
 ``` r
 library(sp)
@@ -46,7 +51,7 @@ library(viridis)
 Read SHP Data
 -------------
 
-The first step is to read in the .shp file using the readOGR function.
+First things first, reading the data. We read the .shp file by using the readOGR function from the rgdal package.
 
 ``` r
 nyc <- readOGR(dsn = ".",
@@ -62,7 +67,7 @@ nyc <- readOGR(dsn = ".",
 Trim Data Set
 -------------
 
-The data we loaded contains spatial data for all of New York. However, this data file is much too big for my laptop to handle! Because of this, we will only be looking at Brooklyn, NY. We use the 'COUNTYFP10' variable to filter by county, Brooklyn is mapped to county code 47 in the data.
+The data we loaded contains spatial data for all of New York. This data file is much too big for my laptop to handle! We use the 'COUNTYFP10' variable to filter for just Brooklyn, NY. Brooklyn is mapped to county code 47 in the data.
 
 ``` r
 brooklyn <- nyc[nyc@data$COUNTYFP10 == "47",]
@@ -94,16 +99,18 @@ str(brooklyn.fortified)
 Join on Income Data
 -------------------
 
-You might have notcied that we've lost the income data. Not a problem, we can get it using the following:
+Note that we've lost the income data. Not a problem, we'll get that back using the following:
 
 ``` r
 income.data <- data.frame("id" = as.character(brooklyn@data$GEOID10),
                           "Income_2014" = as.numeric(as.character(brooklyn@data$C000_14)))
 ```
 
-Note also that the original data file contains income for years 2002-2014. We will only look at the income for 2014 here, but an analysis of how the distribution of income has changed throughout the years could be an interesting next step!
+Note that the original data file contains income for years 2002-2014. We will only look at the income for 2014 here, but an analysis of how the distribution of income has changed throughout the years could be an interesting next step!
 
-Now we simply join this on to our fortified data using the unique 'GEOID10' column:
+Now we simply join this on to our fortified data using the unique 'GEOID10' column.
+
+We also gather the data here and clean up the 'Year' column. This would be really helpful if we were analysing the income for multiple different years, as we could easily facet our plot by the 'Year' column.
 
 ``` r
 brooklyn.fortified <- brooklyn.fortified %>%
@@ -114,12 +121,10 @@ brooklyn.fortified <- brooklyn.fortified %>%
 brooklyn.fortified$Year[brooklyn.fortified$Year == "Income_2014"] <- "2014"
 ```
 
-We also gather the data here and clean up the 'Year' column. This would be really helpful if we were analysing the income for multiple different years, as we could easily facet our plot by the 'Year' column.
-
 First try at a plot
 -------------------
 
-Let's take a look at the shape of the polygons:
+Now we can use ggplot to visualise the data and see what we've got. For starters, we'll just plot the polygons and worry about the household income in a minute.
 
 ``` r
 ggplot() + 
@@ -132,10 +137,12 @@ ggplot() +
 
 ![](Income_Brooklyn_NY_files/figure-markdown_github/unnamed-chunk-8-1.png)
 
+Brilliant, we can see a clear map of Brooklyn, NY.
+
 Adding Fill by Income
 ---------------------
 
-Let's add the variable we're intested in, the household income:
+It's time to add the income variable by using the fill aesthetic.
 
 ``` r
 ggplot() + 
@@ -148,7 +155,7 @@ ggplot() +
 
 ![](Income_Brooklyn_NY_files/figure-markdown_github/unnamed-chunk-9-1.png)
 
-Good, but it's difficult to see any sort of distribution. Everything seems to be very dark.
+Good, we can see some of the blocks are standing out from the crowd. However, the majority of the blocks are all near enough one shade of dark blue and it's difficult to see any real distribution of income. Fear not, we should be able to correct this.
 
 Distribution of Income
 ----------------------
@@ -176,6 +183,8 @@ ggplot(brooklyn.fortified,
 Plot with Log Transformation
 ----------------------------
 
+Now let's try replotting our data with this log transformation.
+
 ``` r
 ggplot() + 
   geom_polygon(data = brooklyn.fortified,
@@ -187,10 +196,12 @@ ggplot() +
 
 ![](Income_Brooklyn_NY_files/figure-markdown_github/unnamed-chunk-12-1.png)
 
-It's better, but the differences in income are still difficult to spot. This is because we are using a monochromatic scale, that is, everything is one colour. As a result, the lowest value in the colour scale can only be so different from the highest value, since ultimately they will both be blue. To solve this problem we can use a pallette with multiple colours.
+It's better I suppose, isn't it? Well maybe, but it's a far reach from a "visually appealing plot" so we've still got to do something. The issue stems from the monochromatic scale we are using. Since everything is a different shade of a single colour, the lowest and highest income blocks can only look so different, in the end they will both still be blue. We can use a palette that uses more than one colour to help deal with this problem and make the differences in income really stand out.
 
 Using the viridis palette.
 --------------------------
+
+The viridis palette gives us just the variety in colours we need. We'll plot again using this palette from the viridis package. Note that we take the log transform out of the geom\_polygon call and add it to the scale\_fill\_viridis call. We wil also change the line colour between blocks. Don't worry that the lines look a little obtrusive, this will be sorted when we create a higher quality image in the next step.
 
 ``` r
 ggplot() + 
@@ -204,7 +215,7 @@ ggplot() +
 
 ![](Income_Brooklyn_NY_files/figure-markdown_github/unnamed-chunk-13-1.png)
 
-Much better. Note that we take the log transform out of the geom\_polygon call and add it to the scale\_fill\_viridis call. We have also changed the line colour between blocks. Don't worry that the lines look a little obtrusive, this will be sorted when we create a higher quality image in the next step.
+Much better.
 
 Final Plot
 ----------
